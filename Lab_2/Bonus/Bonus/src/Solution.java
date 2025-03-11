@@ -29,11 +29,9 @@ public class Solution {
      Ion.addPref(P2 , P3);
 
      Persoana[] persons = Andrei.getPersons();
-
-
      Bonus bonus = new Bonus(persons);
-     bonus.printGraph();
-
+     //bonus.printGraph();
+     System.out.println(bonus.hasMatch());
 
 
     }

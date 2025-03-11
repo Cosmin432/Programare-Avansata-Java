@@ -54,7 +54,7 @@ public class Solution {
         //System.out.println("Am alocat proiectul:" + pref2);
        }
        else if(pref1.isAllocated()&&pref2.isAllocated()){
-       // System.out.println("Nu am putut aloca proiect pentru studentul: " + persons[i].getName());
+        System.out.println("Nu am putut aloca proiect pentru studentul: " + persons[i].getName());
        }
       }
      }

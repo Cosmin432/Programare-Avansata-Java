@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 public class Bonus {
@@ -86,6 +87,63 @@ public class Bonus {
         return -1;
     }
 
+    public boolean hasMatch() {
+
+        if(projectsIndex<studentsIndex) {
+            return false;
+        }
+        for (int size = 1; size <= studentsIndex; size++) {
+            int[] attempt = new int[size];
+            for (int i = 0; i < size; i++) {
+                attempt[i] = i;
+            }
+            while (attempt != null) {
+                if (!hasHallProp(attempt)) {
+                    return false;
+                }
+                attempt = nextAttempt(attempt, size);
+            }
+        }
+
+        return true;
+    }
+
+    private int[] nextAttempt(int[] attempt, int n) {
+        int maxIndex = studentsIndex;
+
+        for (int i = n - 1; i >= 0; i--) {
+            if (attempt[i] < maxIndex - (n - i)) {
+                attempt[i]++;
+
+                for (int j = i + 1; j < n; j++) {
+                    attempt[j] = attempt[j - 1] + 1;
+                }
+                return attempt;
+            }
+        }
+        return null;
+    }
+
+    private boolean hasHallProp(int[] attempt) {
+        int countCovered = 0;
+        boolean[] visited = new boolean[sizeG];
+
+        System.out.print("Se încearcă subsetul: ");
+        for (int studentIndex : attempt) {
+            System.out.print(studentIndex + " ");
+        }
+
+        System.out.println("\n");
+        for (int studentIndex : attempt) {
+            for (int neighbor : adjacencyList.get(studentIndex)) {
+                if (!visited[neighbor]) {
+                    visited[neighbor] = true;
+                    countCovered++;
+                }
+            }
+        }
+        return countCovered >= attempt.length;
+    }
     public void printGraph() {
         for (int i = 0; i < adjacencyList.size(); i++) {
             System.out.print("Nod " + i + " -> ");

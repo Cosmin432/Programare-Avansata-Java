@@ -13,8 +13,6 @@ public class Persoana {
         problem.add(this);
     }
 
-
-
     public String getBirthDay() {
         return this.birthDay;
     }
