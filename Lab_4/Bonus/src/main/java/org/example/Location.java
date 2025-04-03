@@ -18,4 +18,8 @@ public class Location {
     public LocationType getType() {
         return this.type;
     }
+    @Override
+    public String toString() {
+        return name + " (" + type + ")";
+    }
 }

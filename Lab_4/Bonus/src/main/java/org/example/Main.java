@@ -1,9 +1,13 @@
 package org.example;
 
 import com.github.javafaker.Faker;
+import com.sun.source.tree.Tree;
 import org.graph4j.Graph;
 import org.graph4j.GraphBuilder;
+import org.graph4j.alg.sp.DijkstraShortestPathBase;
 import org.graph4j.alg.sp.SinglePairShortestPath;
+import org.graph4j.util.EdgeSet;
+import org.graph4j.util.Path;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -16,37 +20,28 @@ public class Main {
 
         Faker faker = new Faker();
         var locations = new ArrayList<Location>();
+        for( int i = 0; i<100;i++)
+        {
+            Location cotu = new Location(LocationType.Friendly, faker.address().city());
+            locations.add(cotu);
+        }
 
-        // Generate random location names using Faker
-        Location botosani = new Location(LocationType.Friendly, faker.address().city());
-        Location cotu = new Location(LocationType.Friendly, faker.address().city());
-        Location copalau = new Location(LocationType.Friendly, faker.address().city());
-        Location cerbu = new Location(LocationType.Friendly, faker.address().city());
-        Location suceava = new Location(LocationType.Enemy, faker.address().city());
-        Location iasi = new Location(LocationType.Enemy, faker.address().city());
 
-        locations.add(botosani);
-        locations.add(suceava);
-        locations.add(iasi);
-        locations.add(copalau);
-        locations.add(cerbu);
-        locations.add(cotu);
-
-        // Sort and filter friendly locations
         TreeSet<Location> friendlyLocations = locations.stream()
                 .filter(Location::isFriendly)
                 .collect(Collectors.toCollection(() -> new TreeSet<>(Comparator.comparing(Location::getName))));
 
-        // Sort and filter enemy locations
+
         LinkedList<Location> enemyLocations = locations.stream()
                 .filter(loc -> !loc.isFriendly())
                 .sorted(Comparator.comparing(Location::getName))
                 .collect(Collectors.toCollection(LinkedList::new));
 
-        //afisare(enemyLocations,friendlyLocations);
-        //punctDoi(locations);
-        //punctTrei(locations);
+        afisare(enemyLocations, friendlyLocations);
+        punctDoi(locations);
+
     }
+
     static void afisare(LinkedList<Location> enemyLocations, TreeSet<Location> friendlyLocations) {
         // Print the sorted lists of locations
         System.out.println("Enemy Locations:\n");
@@ -58,10 +53,11 @@ public class Main {
 
     static void punctDoi(List<Location> locations) {
 
+        ArrayList<PathStuct> paths = new ArrayList<>();
+
         Graph graph = GraphBuilder.empty()
                 .estimatedNumVertices(locations.size())
                 .buildGraph();
-
 
         for (int i = 0; i < locations.size(); i++) {
             graph.addVertex(i, locations.get(i));
@@ -69,67 +65,49 @@ public class Main {
 
 
         for (int i = 0; i < locations.size(); i++) {
-            Location currentLocation = locations.get(i);
-
-            if (i + 1 < locations.size()) {
-                double weight = Math.random() * 100;
-                graph.addEdge(i, i + 1, weight);
+            for (int j = i + 1; j < locations.size(); j++) {
+                double check = Math.random();
+                if (check < 0.80) {
+                    double weight = Math.random() * 100;
+                    graph.addEdge(i, j, weight);
+                    graph.addEdge(j, i, weight);
+                }
             }
         }
 
+        for (int i = 0; i < locations.size()-1; i++) {
+            Location startLocation = locations.get(i);
+            int startVertex = graph.findVertex(startLocation);
+            for (int j = i+1; j < locations.size(); j++) {
+                Location endLocation = locations.get(j);
+                int endVertex = graph.findVertex(endLocation);
 
-        Location startLocation = locations.get(0);
-        Location endLocation = locations.get(locations.size() - 1);
+                DijkstraShortestPathBase algoritm = new DijkstraShortestPathBase(graph, startVertex) {
+                    @Override
+                    protected int findMinIndex() {
+                        return this.source;
+                    }
+                };
+                Path path = algoritm.findPath(endVertex);
+                if (path == null) {
+                    System.out.println("No path found from " + startLocation + " to " + endLocation);
+                    continue;
+                }
+                double weight = algoritm.getPathWeight(endVertex);
+                PathStuct pathS = new PathStuct(path, weight);
+                paths.add(pathS);
 
-        int startVertex = graph.findVertex(startLocation);
-        int endVertex = graph.findVertex(endLocation);
-
-        SinglePairShortestPath algorithm = SinglePairShortestPath.getInstance(graph, startVertex, endVertex);
-        double shortestPathWeight = algorithm.getPathWeight();
-        System.out.println("Weight of shortest path: " + shortestPathWeight);
-
-    }
-    static void punctTrei(List<Location> locations) {
-
-        Map<LocationType, List<Location>> locationsByType = locations.stream()
-                .collect(Collectors.groupingBy(Location::getType));
-
-
-        locationsByType.forEach((type, locList) -> {
-            System.out.println(type + ":");
-            locList.forEach(loc -> System.out.println(" - " + loc.getName()));
-        });
-    }
-}
-
-static Map<String, Route> computeSafestRoutes(List<Location> locations) {
-    Graph graph = GraphBuilder.empty();
-
-    Map<String, Route> safestRoutes = new HashMap<>();
-
-    for (int i = 0; i < locations.size(); i++) {
-        for (int j = i + 1; j < locations.size(); j++) {
-            Location start = locations.get(i);
-            Location end = locations.get(j);
-
-            DijkstraShortestPath dijkstra = new DijkstraShortestPath(graph, i);
-            double distance = dijkstra.getPathWeight(j);
-            List<Integer> pathVertices = dijkstra.getPathVertices(j);
-
-            // Extrage locațiile din pathVertices
-            List<Location> pathLocations = pathVertices.stream()
-                    .map(locations::get)
-                    .collect(Collectors.toList());
-
-            // Numără locațiile Friendly/Enemy
-            int friendly = (int) pathLocations.stream().filter(Location::isFriendly).count();
-            int enemy = pathLocations.size() - friendly;
-
-            // Cheia pentru map: "Start->End" (e.g., "Botosani->Suceava")
-            String key = start.getName() + "->" + end.getName();
-            safestRoutes.put(key, new Route(pathLocations, friendly, enemy, distance));
+            }
         }
+        for(PathStuct path :paths)
+        {
+            System.out.println(path);
+
+        }
+        OptionalDouble valoare = paths.stream().mapToDouble(PathStuct::getWeight).average();
+        System.out.println(valoare.getAsDouble());
     }
 
-    return safestRoutes;
+
 }
+
